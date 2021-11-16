@@ -5,7 +5,7 @@
 
 package kotlin
 
-inline class UInt(val value: Int)
+inline class UInt @kotlin.internal.IntrinsicConstEvaluation constructor(val value: Int)
 
 // FILE: test.kt
 
