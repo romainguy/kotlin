@@ -13,10 +13,12 @@ import kotlin.time.Duration.Companion.nanoseconds
 
 class MeasureTimeTest {
 
-    private fun longRunningCalc(): String = buildString {
-        repeat(10) {
-            while (Random.nextDouble() >= 0.001);
-            append(('a'..'z').random())
+    companion object {
+        fun longRunningCalc(): String = buildString {
+            repeat(10) {
+                while (Random.nextDouble() >= 0.001);
+                append(('a'..'z').random())
+            }
         }
     }
 
