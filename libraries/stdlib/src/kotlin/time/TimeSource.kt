@@ -61,6 +61,12 @@ public interface TimeMark {
      * Returns a time mark on the same time source that is ahead of this time mark by the specified [duration].
      *
      * The returned time mark is more _late_ when the [duration] is positive, and more _early_ when the [duration] is negative.
+     *
+     * If the time mark is adjusted too far in the past or in the future, it may saturate to an infinitely distant time mark.
+     * In that case, [elapsedNow] will return an infinite duration elapsed from such infinitely distant mark.
+     *
+     * @throws IllegalArgumentException may be thrown if a positive infinite duration is added to an infinitely distant past time mark or
+     * a negative infinite duration is added to an infinitely distant future time mark.
      */
     public open operator fun plus(duration: Duration): TimeMark = AdjustedTimeMark(this, duration)
 
@@ -68,6 +74,12 @@ public interface TimeMark {
      * Returns a time mark on the same time source that is behind this time mark by the specified [duration].
      *
      * The returned time mark is more _early_ when the [duration] is positive, and more _late_ when the [duration] is negative.
+     *
+     * If the time mark is adjusted too far in the past or in the future, it may saturate to an infinitely distant time mark.
+     * In that case, [elapsedNow] will return an infinite duration elapsed from such infinitely distant mark.
+     *
+     * @throws IllegalArgumentException may be thrown if a positive infinite duration is subtracted from an infinitely distant future time mark or
+     * a negative infinite duration is subtracted from an infinitely distant past time mark.
      */
     public open operator fun minus(duration: Duration): TimeMark = plus(-duration)
 
