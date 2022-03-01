@@ -10,6 +10,7 @@
 
 #include "Allocator.hpp"
 #include "GCScheduler.hpp"
+#include "IntrusiveList.hpp"
 #include "ObjectFactory.hpp"
 #include "Types.h"
 #include "Utils.hpp"
@@ -25,9 +26,6 @@ namespace gc {
 // Stop-the-world Mark-and-Sweep that runs on mutator threads. Can support targets that do not have threads.
 class SameThreadMarkAndSweep : private Pinned {
 public:
-    // This implementation of mark queue allocates memory during collection.
-    using MarkQueue = KStdVector<ObjHeader*>;
-
     enum class SafepointFlag {
         kNone,
         kNeedsSuspend,
@@ -45,9 +43,21 @@ public:
         Color color() const noexcept { return color_; }
         void setColor(Color color) noexcept { color_ = color; }
 
+        ObjectData* next() const noexcept { return next_; }
+        void setNext(ObjectData* next) noexcept { next_ = next; }
+
     private:
+        ObjectData* next_ = nullptr;
         Color color_ = Color::kWhite;
     };
+
+    struct MarkQueueTraits {
+        static ObjectData* next(const ObjectData& value) noexcept { return value.next(); }
+
+        static void setNext(ObjectData& value, ObjectData* next) noexcept { value.setNext(next); }
+    };
+
+    using MarkQueue = intrusive_forward_list<ObjectData, MarkQueueTraits>;
 
     class ThreadData : private Pinned {
     public:

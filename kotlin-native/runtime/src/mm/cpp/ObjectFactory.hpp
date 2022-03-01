@@ -467,6 +467,12 @@ public:
             return NodeRef(Storage::Node::FromData(heapArray));
         }
 
+        static NodeRef From(ObjectData& objectData) noexcept {
+            auto* heapObject = reinterpret_cast<HeapObjHeader*>(reinterpret_cast<uintptr_t>(&objectData) - offsetof(HeapObjHeader, gcData));
+            RuntimeAssert(&heapObject->gcData == &objectData, "HeapObjHeader layout has broken");
+            return NodeRef(Storage::Node::FromData(heapObject));
+        }
+
         NodeRef* operator->() noexcept { return this; }
 
         ObjectData& ObjectData() noexcept {
