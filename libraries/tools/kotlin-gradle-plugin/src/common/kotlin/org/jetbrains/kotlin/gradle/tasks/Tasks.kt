@@ -254,7 +254,7 @@ abstract class GradleCompileTaskProvider @Inject constructor(
 abstract class AbstractKotlinCompile<T : CommonCompilerArguments> @Inject constructor(
     objectFactory: ObjectFactory
 ) : AbstractKotlinCompileTool<T>(objectFactory),
-    CompileUsingKotlinDaemonWithNormalization {
+    CompileUsingKotlinDaemonWithNormalization, BaseKotlinCompile {
 
     init {
         cacheOnlyIfEnabledForKotlin()
@@ -300,20 +300,9 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments> @Inject constr
 
     internal fun reportingSettings() = buildMetricsReporterService.orNull?.parameters?.reportingSettings ?: ReportingSettings()
 
-    @get:Input
-    internal abstract val useModuleDetection: Property<Boolean>
-
     @get:Internal
     protected val multiModuleICSettings: MultiModuleICSettings
         get() = MultiModuleICSettings(buildHistoryFile.get().asFile, useModuleDetection.get())
-
-    @get:NormalizeLineEndings
-    @get:Classpath
-    abstract val pluginClasspath: ConfigurableFileCollection
-
-    @get:Nested
-    internal abstract val pluginOptions: ListProperty<CompilerPluginOptions>
-
 
     /**
      * Plugin Data provided by [KpmCompilerPlugin]
@@ -326,18 +315,12 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments> @Inject constr
     @get:Internal
     internal val javaOutputDir: DirectoryProperty = objectFactory.directoryProperty()
 
-    @get:Internal
-    internal abstract val sourceSetName: Property<String>
-
     @get:InputFiles
     @get:IgnoreEmptyDirectories
     @get:NormalizeLineEndings
     @get:Incremental
     @get:PathSensitive(PathSensitivity.RELATIVE)
     internal val commonSourceSet: ConfigurableFileCollection = objectFactory.fileCollection()
-
-    @get:Input
-    internal abstract val moduleName: Property<String>
 
     @get:Internal
     val abiSnapshotFile
@@ -351,9 +334,6 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments> @Inject constr
 
     @get:Internal
     internal val friendSourceSets = objectFactory.listProperty(String::class.java)
-
-    @get:Internal // takes part in the compiler arguments
-    abstract val friendPaths: ConfigurableFileCollection
 
     private val kotlinLogger by lazy { GradleKotlinLogger(logger) }
 
@@ -496,9 +476,6 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments> @Inject constr
         taskOutputsBackup: TaskOutputsBackup?
     )
 
-    @get:Input
-    internal abstract val multiPlatformEnabled: Property<Boolean>
-
     @get:Internal
     internal val abstractKotlinCompileArgumentsContributor by lazy {
         AbstractKotlinCompileArgumentsContributor(
@@ -549,9 +526,6 @@ abstract class KotlinCompile @Inject constructor(
 ) : AbstractKotlinCompile<K2JVMCompilerArguments>(objectFactory),
     KotlinJvmCompile,
     UsesKotlinJavaToolchain {
-
-    @get:Internal("Takes part in compiler args.")
-    internal abstract val parentKotlinOptionsImpl: Property<KotlinJvmOptions>
 
     /** A package prefix that is used for locating Java sources in a directory structure with non-full-depth packages.
      *
