@@ -66,7 +66,7 @@ class AnalysisApiEnvironmentManagerImpl(
             useSiteCompilerConfiguration.get(JVMConfigurationKeys.JDK_HOME)?.toPath(),
         )
 
-        testServices.compilerConfigurationProvider.registerCompilerExtensions(getProject(), useSiteModule)
+        testServices.compilerConfigurationProvider.registerCompilerExtensions(getProject(), useSiteModule, useSiteCompilerConfiguration)
     }
 
     override fun getProjectEnvironment(): KotlinCoreProjectEnvironment =
