@@ -31,22 +31,28 @@ class FinalizerProcessor;
 class ConcurrentMarkAndSweep : private Pinned {
 public:
     class ObjectData {
+        static inline constexpr unsigned colorMask = (1 << 2) - 1;
+
     public:
-        enum class Color {
+        enum class Color : unsigned {
             kWhite = 0, // Initial color at the start of collection cycles. Objects with this color at the end of GC cycle are collected.
                         // All new objects are allocated with this color.
             kBlack, // Objects encountered during mark phase.
         };
 
-        Color color() const noexcept { return color_; }
-        void setColor(Color color) noexcept { color_ = color; }
+        Color color() const noexcept { return static_cast<Color>(getPointerBits(next_, colorMask)); }
+        void setColor(Color color) noexcept { next_ = setPointerBits(clearPointerBits(next_, colorMask), static_cast<unsigned>(color)); }
 
-        ObjectData* next() const noexcept { return next_; }
-        void setNext(ObjectData* next) noexcept { next_ = next; }
+        ObjectData* next() const noexcept { return clearPointerBits(next_, colorMask); }
+        void setNext(ObjectData* next) noexcept {
+            RuntimeAssert(!hasPointerBits(next, colorMask), "next must be untagged: %p", next);
+            auto bits = getPointerBits(next_, colorMask);
+            next_ = setPointerBits(next, bits);
+        }
 
     private:
+        // Color is encoded in low bits.
         ObjectData* next_ = nullptr;
-        Color color_ = Color::kWhite;
     };
 
     struct MarkQueueTraits {
