@@ -105,7 +105,6 @@ private class SerializedIdeaKotlinExtras(
         }
     }
 
-    @Synchronized
     private fun writeReplace(): Any {
         readLock.withLock {
             return IdeaKotlinExtrasSurrogate(
