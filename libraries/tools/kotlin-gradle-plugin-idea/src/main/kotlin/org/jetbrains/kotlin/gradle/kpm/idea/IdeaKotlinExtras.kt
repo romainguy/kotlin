@@ -71,7 +71,6 @@ private class SerializedIdeaKotlinExtras(
     private val deserializedExtras = mutableExtrasOf()
     override val ids: Set<Extras.Id<*>> = serializedExtras.keys.toSet()
 
-    @Synchronized
     override fun <T : Any> get(key: Extras.Key<T>): T? {
         /*
         Fast path: If id is not present, we can already return null
