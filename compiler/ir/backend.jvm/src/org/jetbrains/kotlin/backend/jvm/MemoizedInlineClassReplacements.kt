@@ -9,7 +9,10 @@ import org.jetbrains.kotlin.backend.common.ir.copyTo
 import org.jetbrains.kotlin.backend.common.ir.copyTypeParameters
 import org.jetbrains.kotlin.backend.common.ir.copyTypeParametersFrom
 import org.jetbrains.kotlin.backend.common.ir.createDispatchReceiverParameter
-import org.jetbrains.kotlin.backend.jvm.ir.*
+import org.jetbrains.kotlin.backend.jvm.ir.classFileContainsMethod
+import org.jetbrains.kotlin.backend.jvm.ir.extensionReceiverName
+import org.jetbrains.kotlin.backend.jvm.ir.isStaticValueClassReplacement
+import org.jetbrains.kotlin.backend.jvm.ir.parentClassId
 import org.jetbrains.kotlin.codegen.state.KotlinTypeMapper
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Modality
@@ -21,7 +24,6 @@ import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrPropertySymbol
 import org.jetbrains.kotlin.ir.types.impl.IrSimpleTypeImpl
 import org.jetbrains.kotlin.ir.types.impl.IrStarProjectionImpl
-import org.jetbrains.kotlin.ir.types.isInt
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.InlineClassDescriptorResolver
@@ -40,7 +42,7 @@ class MemoizedInlineClassReplacements(
     private val storageManager = LockBasedStorageManager("inline-class-replacements")
     private val propertyMap = ConcurrentHashMap<IrPropertySymbol, IrProperty>()
 
-    override val originalFunctionForStaticReplacement: MutableMap<IrFunction, IrFunction> = ConcurrentHashMap()
+    val originalFunctionForStaticReplacement: MutableMap<IrFunction, IrFunction> = ConcurrentHashMap()
     internal val originalFunctionForMethodReplacement: MutableMap<IrFunction, IrFunction> = ConcurrentHashMap()
 
     /**
@@ -52,7 +54,9 @@ class MemoizedInlineClassReplacements(
                 // Don't mangle anonymous or synthetic functions, except for generated SAM wrapper methods
                 (it.isLocal && it is IrSimpleFunction && it.overriddenSymbols.isEmpty()) ||
                         (it.origin == IrDeclarationOrigin.DELEGATED_PROPERTY_ACCESSOR && it.visibility == DescriptorVisibilities.LOCAL) ||
-                        it.isStaticInlineClassReplacement ||
+                        it.isStaticValueClassReplacement ||
+                        it.origin == JvmLoweredDeclarationOrigin.MULTI_FIELD_VALUE_CLASS_GENERATED_IMPL_METHOD ||
+                        it.origin == IrDeclarationOrigin.GENERATED_MULTI_FIELD_VALUE_CLASS_MEMBER ||
                         it.origin.isSynthetic && it.origin != IrDeclarationOrigin.SYNTHETIC_GENERATED_SAM_IMPLEMENTATION ->
                     null
 
@@ -67,7 +71,7 @@ class MemoizedInlineClassReplacements(
                     when {
                         it.isRemoveAtSpecialBuiltinStub() ->
                             null
-                        it.isInlineClassMemberFakeOverriddenFromJvmDefaultInterfaceMethod() ||
+                        it.isValueClassMemberFakeOverriddenFromJvmDefaultInterfaceMethod() ||
                                 it.origin == IrDeclarationOrigin.IR_BUILTINS_STUB ->
                             createMethodReplacement(it)
                         else ->
@@ -82,29 +86,6 @@ class MemoizedInlineClassReplacements(
                     null
             }
         }
-
-    private fun IrFunction.isRemoveAtSpecialBuiltinStub() =
-        origin == IrDeclarationOrigin.IR_BUILTINS_STUB &&
-                name.asString() == "remove" &&
-                valueParameters.size == 1 &&
-                valueParameters[0].type.isInt()
-
-    private fun IrFunction.isInlineClassMemberFakeOverriddenFromJvmDefaultInterfaceMethod(): Boolean {
-        if (this !is IrSimpleFunction) return false
-        if (!this.isFakeOverride) return false
-        val parentClass = parentClassOrNull ?: return false
-        if (!parentClass.isSingleFieldValueClass) return false
-
-        val overridden = resolveFakeOverride() ?: return false
-        if (!overridden.parentAsClass.isJvmInterface) return false
-        if (overridden.modality == Modality.ABSTRACT) return false
-
-        // We have a non-abstract interface member.
-        // It is a JVM default interface method if one of the following conditions are true:
-        // - it is a Java method,
-        // - it is a Kotlin function compiled to JVM default interface method.
-        return overridden.isFromJava() || overridden.isCompiledToJvmDefault(context.state.jvmDefaultMode)
-    }
 
     /**
      * Get the box function for an inline class. Concretely, this is a synthetic
@@ -151,7 +132,7 @@ class MemoizedInlineClassReplacements(
         return specializedEqualsCache.computeIfAbsent(irClass) {
             irFactory.buildFun {
                 name = InlineClassDescriptorResolver.SPECIALIZED_EQUALS_NAME
-                // TODO: Revisit this once we allow user defined equals methods in inline classes.
+                // TODO: Revisit this once we allow user defined equals methods in inline/multi-field value classes.
                 origin = JvmLoweredDeclarationOrigin.INLINE_CLASS_GENERATED_IMPL_METHOD
                 returnType = irBuiltIns.booleanType
             }.apply {
@@ -171,7 +152,7 @@ class MemoizedInlineClassReplacements(
         }
     }
 
-    private fun createMethodReplacement(function: IrFunction): IrSimpleFunction =
+    override fun createMethodReplacement(function: IrFunction): IrSimpleFunction =
         buildReplacement(function, function.origin) {
             originalFunctionForMethodReplacement[this] = function
             dispatchReceiverParameter = function.dispatchReceiverParameter?.copyTo(this, index = -1)
@@ -189,7 +170,7 @@ class MemoizedInlineClassReplacements(
             }
         }
 
-    private fun createStaticReplacement(function: IrFunction): IrSimpleFunction =
+    override fun createStaticReplacement(function: IrFunction): IrSimpleFunction =
         buildReplacement(function, JvmLoweredDeclarationOrigin.STATIC_INLINE_CLASS_REPLACEMENT, noFakeOverride = true) {
             originalFunctionForStaticReplacement[this] = function
 

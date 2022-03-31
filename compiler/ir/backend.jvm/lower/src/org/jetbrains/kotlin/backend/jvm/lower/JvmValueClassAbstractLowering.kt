@@ -15,22 +15,15 @@ import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.builders.irReturn
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
-import org.jetbrains.kotlin.ir.symbols.IrValueSymbol
 import org.jetbrains.kotlin.ir.transformStatement
-import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.util.constructedClass
+import org.jetbrains.kotlin.ir.util.parentAsClass
+import org.jetbrains.kotlin.ir.util.transformFlat
 import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 internal abstract class JvmValueClassAbstractLowering(val context: JvmBackendContext) : FileLoweringPass,
     IrElementTransformerVoidWithContext() {
     abstract val replacements: MemoizedValueClassAbstractReplacements
-
-    protected val valueMap = mutableMapOf<IrValueSymbol, IrValueDeclaration>()
-
-    private fun addBindingsFor(original: IrFunction, replacement: IrFunction) {
-        for ((param, newParam) in original.explicitParameters.zip(replacement.explicitParameters)) {
-            valueMap[param.symbol] = newParam
-        }
-    }
 
     final override fun lower(irFile: IrFile) {
         irFile.transformChildrenVoid()
@@ -40,38 +33,9 @@ internal abstract class JvmValueClassAbstractLowering(val context: JvmBackendCon
 
     abstract fun IrFunction.isSpecificFieldGetter(): Boolean
 
-    final override fun visitClassNew(declaration: IrClass): IrStatement {
-        // The arguments to the primary constructor are in scope in the initializers of IrFields.
-        declaration.primaryConstructor?.let {
-            replacements.getReplacementFunction(it)?.let { replacement -> addBindingsFor(it, replacement) }
-        }
+    abstract override fun visitClassNew(declaration: IrClass): IrStatement
 
-        declaration.transformDeclarationsFlat { memberDeclaration ->
-            if (memberDeclaration is IrFunction) {
-                withinScope(memberDeclaration) {
-                    transformFunctionFlat(memberDeclaration)
-                }
-            } else {
-                memberDeclaration.accept(this, null)
-                null
-            }
-        }
-
-        if (declaration.isSpecificLoweringLogicApplicable()) {
-            val irConstructor = declaration.primaryConstructor!!
-            // The field getter is used by reflection and cannot be removed here unless it is internal.
-            declaration.declarations.removeIf {
-                it == irConstructor || (it is IrFunction && it.isSpecificFieldGetter() && !it.visibility.isPublicAPI)
-            }
-            buildPrimaryValueClassConstructor(declaration, irConstructor)
-            buildBoxFunction(declaration)
-            buildUnboxFunctions(declaration)
-            buildSpecializedEqualsMethod(declaration)
-            addJvmInlineAnnotation(declaration)
-        }
-
-        return declaration
-    }
+    abstract fun handleSpecificNewClass(declaration: IrClass)
 
     protected fun transformFunctionFlat(function: IrFunction): List<IrDeclaration>? {
         if (function is IrConstructor && function.isPrimary && function.constructedClass.isSpecificLoweringLogicApplicable()) {
@@ -110,16 +74,6 @@ internal abstract class JvmValueClassAbstractLowering(val context: JvmBackendCon
     protected abstract fun transformConstructorFlat(constructor: IrConstructor, replacement: IrSimpleFunction): List<IrDeclaration>
 
     protected abstract fun transformSimpleFunctionFlat(function: IrSimpleFunction, replacement: IrSimpleFunction): List<IrDeclaration>
-
-    protected abstract fun buildPrimaryValueClassConstructor(valueClass: IrClass, irConstructor: IrConstructor)
-
-    protected abstract fun buildBoxFunction(valueClass: IrClass)
-
-    protected abstract fun buildUnboxFunctions(valueClass: IrClass)
-
-    protected abstract fun buildSpecializedEqualsMethod(valueClass: IrClass) // todo hashCode
-
-    protected abstract fun addJvmInlineAnnotation(valueClass: IrClass)
 
     final override fun visitReturn(expression: IrReturn): IrExpression {
         expression.returnTargetSymbol.owner.safeAs<IrFunction>()?.let { target ->
@@ -162,4 +116,5 @@ internal abstract class JvmValueClassAbstractLowering(val context: JvmBackendCon
         else
             super.visitAnonymousInitializerNew(declaration)
 
+    protected abstract fun addBindingsFor(original: IrFunction, replacement: IrFunction)
 }

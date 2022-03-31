@@ -19,7 +19,6 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.types.impl.IrSimpleTypeImpl
 import org.jetbrains.kotlin.ir.types.impl.IrStarProjectionImpl
 import org.jetbrains.kotlin.ir.types.impl.makeTypeProjection
-import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.isLocal
 import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.utils.addToStdlib.safeAs
@@ -123,8 +122,11 @@ fun IrType.defaultValue(startOffset: Int, endOffset: Int, context: JvmBackendCon
     }
 }
 
-fun IrType.isInlineClassType(): Boolean =
-    erasedUpperBound.isSingleFieldValueClass
+fun IrType.isInlineClassType(): Boolean = erasedUpperBound.isSingleFieldValueClass
+
+fun IrType.isMultiFieldValueClassType(): Boolean = erasedUpperBound.isMultiFieldValueClass
+
+fun IrType.isValueClassType(): Boolean = erasedUpperBound.isValue
 
 val IrType.upperBound: IrType
     get() = erasedUpperBound.symbol.starProjectedType
