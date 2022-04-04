@@ -133,7 +133,7 @@ private fun createToFreshVariableSubstitutorAndAddInitialConstraints(
         if ((upperBound.lowerBoundIfFlexible() as? ConeClassLikeType)?.lookupTag?.classId == StandardClassIds.Any &&
             upperBound.upperBoundIfFlexible().isMarkedNullable
         ) {
-            return
+            //return
         }
 
         csBuilder.addSubtypeConstraint(

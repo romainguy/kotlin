@@ -1,0 +1,18 @@
+package
+
+public fun f(): kotlin.Unit
+public fun </*0*/ O> flowOf(/*0*/ vararg values: O /*kotlin.Array<out O>*/): Flow<O>
+public inline fun </*0*/ T, /*1*/ R> Flow<T>.transform(/*0*/ crossinline transform: suspend FlowCollector<R>.(T) -> kotlin.Unit): Flow<R>
+
+public interface Flow</*0*/ out F> {
+    public open override /*1*/ /*fake_override*/ fun equals(/*0*/ other: kotlin.Any?): kotlin.Boolean
+    public open override /*1*/ /*fake_override*/ fun hashCode(): kotlin.Int
+    public open override /*1*/ /*fake_override*/ fun toString(): kotlin.String
+}
+
+public fun interface FlowCollector</*0*/ in C> {
+    public abstract suspend fun emit(/*0*/ value: C): kotlin.Unit
+    public open override /*1*/ /*fake_override*/ fun equals(/*0*/ other: kotlin.Any?): kotlin.Boolean
+    public open override /*1*/ /*fake_override*/ fun hashCode(): kotlin.Int
+    public open override /*1*/ /*fake_override*/ fun toString(): kotlin.String
+}

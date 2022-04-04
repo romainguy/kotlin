@@ -6541,6 +6541,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
             }
 
             @Test
+            @TestMetadata("coroutineFlowInference.kt")
+            public void testCoroutineFlowInference() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/coroutines/coroutineFlowInference.kt");
+            }
+
+            @Test
             @TestMetadata("suspendInvokeInsideTry.kt")
             public void testSuspendInvokeInsideTry() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/coroutines/suspendInvokeInsideTry.kt");
