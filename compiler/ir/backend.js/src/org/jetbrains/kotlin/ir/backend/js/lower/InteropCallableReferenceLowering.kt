@@ -146,7 +146,7 @@ class InteropCallableReferenceLowering(val context: JsIrBackendContext) : BodyLo
         lambdaDeclaration: IrSimpleFunction,
         invokeFun: IrSimpleFunction,
         invokeMapping: Map<IrValueParameterSymbol, IrValueParameterSymbol>,
-        factoryMapping: Map<IrFieldSymbol, IrValueParameterSymbol>
+        lambdaContextMapping: Map<IrFieldSymbol, IrValueSymbol>
     ): IrBlockBody {
         val body = invokeFun.body
             ?: compilationException(
@@ -162,7 +162,7 @@ class InteropCallableReferenceLowering(val context: JsIrBackendContext) : BodyLo
         body.transformChildrenVoid(object : IrElementTransformerVoid() {
             override fun visitGetField(expression: IrGetField): IrExpression {
                 expression.transformChildrenVoid()
-                val parameter = factoryMapping[expression.symbol] ?: return expression
+                val parameter = lambdaContextMapping[expression.symbol] ?: return expression
                 return expression.getValue(parameter)
             }
 
@@ -222,21 +222,25 @@ class InteropCallableReferenceLowering(val context: JsIrBackendContext) : BodyLo
         )
     }
 
-    private fun capturedFieldsToParametersMap(constructor: IrConstructor, factoryFunction: IrSimpleFunction): Map<IrFieldSymbol, IrValueParameterSymbol> {
-        val statements = constructor.body?.let { it.cast<IrBlockBody>().statements }
+    /**
+     * Returns a mapping from a lambda class field to the corresponding captured value.
+     *
+     * [remapVP] accepts a lambda constructor's value parameter symbol, for which it should return the corresponding captured value.
+     */
+    private fun <ValueSymbol : IrValueSymbol> remapCapturedFields(
+        lambdaConstructor: IrConstructor,
+        remapVP: (IrValueParameterSymbol) -> ValueSymbol
+    ): Map<IrFieldSymbol, ValueSymbol> {
+        val statements = lambdaConstructor.body?.let { it.cast<IrBlockBody>().statements }
             ?: compilationException(
                 "Expecting Body for function ref constructor",
-                constructor
+                lambdaConstructor
             )
-
-        val fieldSetters = statements.filterIsInstance<IrSetField>()
+        return statements
+            .asSequence()
+            .filterIsInstance<IrSetField>()
             .filter { it.origin == LoweredStatementOrigins.STATEMENT_ORIGIN_INITIALIZER_OF_FIELD_FOR_CAPTURED_VALUE }
-
-        fun remapVP(vp: IrValueParameterSymbol): IrValueParameterSymbol {
-            return factoryFunction.valueParameters[vp.owner.index].symbol
-        }
-
-        return fieldSetters.associate { it.symbol to remapVP(it.value.cast<IrGetValue>().symbol.cast()) }
+            .associate { it.symbol to remapVP(it.value.cast<IrGetValue>().symbol.cast()) }
     }
 
     private fun extractReferenceReflectionName(getter: IrSimpleFunction): IrExpression {
@@ -305,7 +309,7 @@ class InteropCallableReferenceLowering(val context: JsIrBackendContext) : BodyLo
 
             newDeclarations.add(lambdaClass)
         } else {
-            val fieldToParameterMapping = capturedFieldsToParametersMap(constructor, factoryFunction)
+            val fieldToParameterMapping = remapCapturedFields(constructor) { factoryFunction.valueParameters[it.owner.index].symbol }
             val oldToNewInvokeParametersMapping = lambdaInfo.createOldToNewInvokeParametersMapping(lambdaDeclaration)
             lambdaDeclaration.body =
                 inlineLambdaBody(lambdaDeclaration, lambdaInfo.invokeFun, oldToNewInvokeParametersMapping, fieldToParameterMapping)
