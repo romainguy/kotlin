@@ -4587,6 +4587,12 @@ public class BoxJsTestGenerated extends AbstractBoxJsTest {
         }
 
         @Test
+        @TestMetadata("callableReferenceOfLocalFun.kt")
+        public void testCallableReferenceOfLocalFun() throws Exception {
+            runTest("js/js.translator/testData/box/inline/callableReferenceOfLocalFun.kt");
+        }
+
+        @Test
         @TestMetadata("callableReferenceOfLocalInline.kt")
         public void testCallableReferenceOfLocalInline() throws Exception {
             runTest("js/js.translator/testData/box/inline/callableReferenceOfLocalInline.kt");
