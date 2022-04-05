@@ -9,6 +9,7 @@ import org.jetbrains.jps.incremental.ModuleBuildTarget
 import org.jetbrains.jps.model.java.JpsJavaClasspathKind
 import org.jetbrains.jps.model.java.JpsJavaExtensionService
 import org.jetbrains.jps.model.module.JpsModuleDependency
+import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.config.ApiVersion
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.jps.incremental.CacheStatus
@@ -16,6 +17,7 @@ import org.jetbrains.kotlin.jps.incremental.JpsIncrementalCache
 import org.jetbrains.kotlin.jps.incremental.getKotlinCache
 import org.jetbrains.kotlin.jps.model.kotlinCompilerArguments
 import org.jetbrains.kotlin.jps.targets.KotlinModuleBuildTarget
+import org.jetbrains.kotlin.konan.file.File
 import org.jetbrains.kotlin.utils.keysToMapExceptNulls
 import java.nio.file.Files
 import java.nio.file.Path
@@ -121,6 +123,10 @@ class KotlinChunk internal constructor(val context: KotlinCompileContext, val ta
             it.version = true
 
             if (it.languageVersion == null) it.languageVersion = defaultLanguageVersion.versionString
+            if (it is K2JVMCompilerArguments) {
+                val regex = Regex(".*build.libs.*-SNAPSHOT\\.jar")
+                it.classpath = it.classpath?.split(":")?.filter { classPath -> !classPath.matches(regex) }?.joinToString(":")
+            }
         }
     }
 

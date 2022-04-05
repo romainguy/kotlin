@@ -56,9 +56,11 @@ import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.codegen.AsmUtil
 import org.jetbrains.kotlin.codegen.JvmCodegenUtil
 import org.jetbrains.kotlin.config.IncrementalCompilation
+import org.jetbrains.kotlin.config.KotlinFacetSettings
 import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.jps.build.KotlinJpsBuildTestBase.LibraryDependency.*
 import org.jetbrains.kotlin.jps.incremental.CacheAttributesDiff
+import org.jetbrains.kotlin.jps.model.JpsKotlinFacetModuleExtension
 import org.jetbrains.kotlin.jps.model.kotlinCommonCompilerArguments
 import org.jetbrains.kotlin.jps.model.kotlinCompilerArguments
 import org.jetbrains.kotlin.jps.targets.KotlinModuleBuildTarget
@@ -79,6 +81,8 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URLClassLoader
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.*
 import java.util.zip.ZipOutputStream
 
@@ -959,6 +963,31 @@ open class KotlinJpsBuildTest : KotlinJpsBuildTestBase() {
 
     fun testKotlinLombokProjectBuild() {
         initProject(LOMBOK)
+        buildAllModules().assertSuccessful()
+    }
+
+    fun testBuildAfterGdwBuild() {
+        initProject(JVM_FULL_RUNTIME)
+        findModule("module2").let {
+            val facet = KotlinFacetSettings()
+            facet.useProjectSettings = false
+            facet.compilerArguments = K2JVMCompilerArguments()
+
+            val libraryName = "module1-1.0-SNAPSHOT"
+            val libraryJar = MockLibraryUtilExt.compileJvmLibraryToJar(workDir.resolve("module1AsLib").absolutePath, libraryName)
+            val module1Lib = this.workDir.resolve("module1").resolve("build").resolve("libs").resolve("$libraryName.jar")
+            Files.createDirectories(module1Lib.parentFile.toPath())
+            Files.copy(libraryJar.toPath(), module1Lib.toPath(), StandardCopyOption.REPLACE_EXISTING)
+
+            assert(module1Lib.exists())
+            (facet.compilerArguments as K2JVMCompilerArguments).classpath = module1Lib.path
+
+            it.container.setChild(
+                JpsKotlinFacetModuleExtension.KIND,
+                JpsKotlinFacetModuleExtension(facet)
+            )
+        }
+
         buildAllModules().assertSuccessful()
     }
 
