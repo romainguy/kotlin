@@ -75,7 +75,7 @@ val cleanTestKitCacheTask = tasks.register<Delete>("cleanTestKitCache") {
     group = "Build"
     description = "Deletes temporary Gradle TestKit cache"
 
-    delete(project.file(".testKitDir"))
+    delete(project.buildDir.resolve("testKitCache"))
 }
 
 fun Test.includeMppAndAndroid(include: Boolean) = includeTestsWithPattern(include) {
@@ -255,8 +255,7 @@ val daemonsTestsTask = tasks.register<Test>("kgpDaemonTests") {
         includeEngines("junit-jupiter")
     }
 
-    // Disabled cause jna dependency FD is leaking on windows agents
-    //if (isTeamcityBuild) finalizedBy(cleanTestKitCacheTask)
+    if (isTeamcityBuild) finalizedBy(cleanTestKitCacheTask)
 }
 
 val otherPluginsTestTask = tasks.register<Test>("kgpOtherTests") {
