@@ -29,6 +29,7 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.resolve.calls.inference.ConstraintSystemBuilder
 import org.jetbrains.kotlin.resolve.calls.inference.addSubtypeConstraintIfCompatible
+import org.jetbrains.kotlin.resolve.calls.inference.components.VariableFixationFinder
 import org.jetbrains.kotlin.resolve.calls.inference.model.SimpleConstraintSystemConstraintPosition
 import org.jetbrains.kotlin.types.AbstractTypeChecker
 import org.jetbrains.kotlin.types.model.CaptureStatus
@@ -363,8 +364,15 @@ private fun checkApplicabilityForArgumentType(
 
         fun tryGetConeTypeThatCompatibleWithKtType(type: ConeKotlinType): ConeKotlinType {
             if (type is ConeTypeVariableType) {
+                val lookupTag = type.lookupTag
+
+                val constraints = (csBuilder as VariableFixationFinder.Context).notFixedTypeVariables[lookupTag]?.constraints
+                val constraintType = (constraints?.firstOrNull()?.type as? ConeKotlinType)
+                if (constraintType != null)
+                    return constraintType
+
                 val originalTypeParameter =
-                    (type.lookupTag as? ConeTypeVariableTypeConstructor)?.originalTypeParameter as? ConeTypeParameterLookupTag
+                    (lookupTag as? ConeTypeVariableTypeConstructor)?.originalTypeParameter as? ConeTypeParameterLookupTag
 
                 if (originalTypeParameter != null)
                     return ConeTypeParameterTypeImpl(originalTypeParameter, type.isNullable, type.attributes)
@@ -374,7 +382,6 @@ private fun checkApplicabilityForArgumentType(
 
             return type
         }
-
 
         return ArgumentTypeMismatch(
             tryGetConeTypeThatCompatibleWithKtType(actualExpectedType),
