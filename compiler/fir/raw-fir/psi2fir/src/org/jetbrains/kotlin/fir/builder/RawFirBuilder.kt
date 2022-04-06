@@ -1739,9 +1739,7 @@ open class RawFirBuilder(
                                     referenceExpression!!.toFirSourceElement(),
                                     referenceExpression!!.getReferencedNameAsName(),
                                     FirTypeArgumentListImpl(ktQualifier?.typeArgumentList?.toKtPsiSourceElement() ?: source).apply {
-                                        for (typeArgument in ktQualifier!!.typeArguments) {
-                                            typeArguments += typeArgument.convert<FirTypeProjection>()
-                                        }
+                                        typeArguments.appendTypeArguments(ktQualifier!!.typeArguments)
                                     }
                                 )
                                 qualifier.add(firQualifier)
@@ -1810,6 +1808,7 @@ open class RawFirBuilder(
                     source = (annotationEntry.typeReference?.typeElement as? KtUserType)?.referenceExpression?.toFirSourceElement()
                     this.name = name
                 }
+                typeArguments.appendTypeArguments(annotationEntry.typeArguments)
             }
         }
 
@@ -2359,9 +2358,7 @@ open class RawFirBuilder(
 
             return result.apply {
                 this.explicitReceiver = explicitReceiver
-                for (typeArgument in expression.typeArguments) {
-                    typeArguments += typeArgument.convert<FirTypeProjection>()
-                }
+                typeArguments.appendTypeArguments(expression.typeArguments)
             }.build()
         }
 
@@ -2531,6 +2528,12 @@ open class RawFirBuilder(
         override fun visitExpression(expression: KtExpression, data: Unit): FirElement {
             return buildExpressionStub {
                 source = expression.toFirSourceElement()
+            }
+        }
+
+        private fun MutableList<FirTypeProjection>.appendTypeArguments(args: List<KtTypeProjection>) {
+            for (typeArgument in args) {
+                this += typeArgument.convert<FirTypeProjection>()
             }
         }
     }
