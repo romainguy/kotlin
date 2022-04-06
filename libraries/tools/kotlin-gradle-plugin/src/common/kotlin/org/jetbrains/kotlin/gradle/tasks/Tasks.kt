@@ -272,6 +272,7 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments> @Inject constr
                 task.pluginClasspath.from(project.configurations.getByName(compilation.pluginConfigurationName))
             }
             task.moduleName.set(project.provider { compilation.moduleName })
+            task.ownModuleName.set(project.provider { compilation.ownModuleName })
             task.sourceSetName.set(project.provider { compilation.compilationPurpose })
             task.multiPlatformEnabled.value(
                 project.provider {
@@ -375,6 +376,9 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments> @Inject constr
 
     @get:Input
     internal val moduleName: Property<String> = objectFactory.property(String::class.java)
+
+    @get:Input
+    internal val ownModuleName: Property<String> = objectFactory.property(String::class.java)
 
     @get:Internal
     val abiSnapshotFile
