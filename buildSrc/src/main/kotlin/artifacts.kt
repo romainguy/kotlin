@@ -11,6 +11,7 @@ import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.attributes.LibraryElements
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.AdhocComponentWithVariants
+import org.gradle.api.file.ArchiveOperations
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.JavaPlugin
@@ -22,6 +23,7 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.tasks.GenerateModuleMetadata
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.configurationcache.extensions.serviceOf
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetContainer
@@ -70,8 +72,9 @@ fun Project.noDefaultJar() {
 fun Jar.addEmbeddedRuntime() {
     project.configurations.findByName("embedded")?.let { embedded ->
         dependsOn(embedded)
+        val archiveOperations = project.serviceOf<ArchiveOperations>()
         from {
-            embedded.map(project::zipTree)
+            embedded.map(archiveOperations::zipTree)
         }
     }
 }
@@ -138,7 +141,7 @@ fun Project.sourcesJar(body: Jar.() -> Unit = {}): TaskProvider<Jar> {
 
 fun Jar.addEmbeddedSources() {
     project.configurations.findByName("embedded")?.let { embedded ->
-        from(project.provider {
+        val allSources by lazy {
             embedded.resolvedConfiguration
                 .resolvedArtifacts
                 .map { it.id.componentIdentifier }
@@ -146,7 +149,8 @@ fun Jar.addEmbeddedSources() {
                 .mapNotNull {
                     project.project(it.projectPath).sources()
                 }
-        })
+        }
+        from({ allSources })
     }
 }
 
@@ -261,9 +265,9 @@ fun Project.publishProjectJars(projects: List<String>, libraryDependencies: List
 
     jar.apply {
         dependsOn(fatJarContents)
-
+        val archiveOperations = project.serviceOf<ArchiveOperations>()
         from {
-            fatJarContents.map(::zipTree)
+            fatJarContents.map(archiveOperations::zipTree)
         }
     }
 
@@ -295,9 +299,9 @@ fun Project.publishTestJar(projects: List<String>, excludedPaths: List<String>) 
 
     jar.apply {
         dependsOn(fatJarContents)
-
+        val archiveOperations = project.serviceOf<ArchiveOperations>()
         from {
-            fatJarContents.map(::zipTree)
+            fatJarContents.map(archiveOperations::zipTree)
         }
 
         exclude(excludedPaths)
