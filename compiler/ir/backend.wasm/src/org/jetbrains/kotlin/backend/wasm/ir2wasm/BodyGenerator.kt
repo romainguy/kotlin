@@ -207,7 +207,7 @@ class BodyGenerator(
 
         //ClassITable and VTable load
         body.buildGetGlobal(context.referenceGlobalVTable(klass.symbol))
-        if (klass.hasInterfaceForClass()) {
+        if (klass.hasInterfaceSuperClass()) {
             body.buildGetGlobal(context.referenceGlobalClassITable(klass.symbol))
         } else {
             body.buildRefNull(WasmHeapType.Simple.Data)
@@ -250,7 +250,7 @@ class BodyGenerator(
 
             //ClassITable and VTable load
             body.buildGetGlobal(context.referenceGlobalVTable(klassSymbol))
-            if (klass.hasInterfaceForClass()) {
+            if (klass.hasInterfaceSuperClass()) {
                 body.buildGetGlobal(context.referenceGlobalClassITable(klassSymbol))
             } else {
                 body.buildRefNull(WasmHeapType.Simple.Data)
