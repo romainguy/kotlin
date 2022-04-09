@@ -152,9 +152,9 @@ class WasmSymbols(
     val refEq = getInternalFunction("wasm_ref_eq")
     val refIsNull = getInternalFunction("wasm_ref_is_null")
     val refTest = getInternalFunction("wasm_ref_test")
-    val intToLong = getInternalFunction("wasm_i64_extend_i32_s")
+    val refCast = getInternalFunction("wasm_ref_cast")
 
-    val wasmRefCast = getInternalFunction("wasm_ref_cast")
+    val intToLong = getInternalFunction("wasm_i64_extend_i32_s")
 
     val boxIntrinsic: IrSimpleFunctionSymbol = getInternalFunction("boxIntrinsic")
     val unboxIntrinsic: IrSimpleFunctionSymbol = getInternalFunction("unboxIntrinsic")
@@ -244,6 +244,8 @@ class WasmSymbols(
 
     private val wasmDataRefClass = getIrClass(FqName("kotlin.wasm.internal.reftypes.dataref"))
     val wasmDataRefType by lazy { wasmDataRefClass.defaultType }
+
+    val wasmAnyRefClass = getIrClass(FqName("kotlin.wasm.internal.reftypes.anyref"))
 
     private val externalInterfaceClass = getIrClass(FqName("kotlin.wasm.internal.ExternalInterfaceType"))
     val externalInterfaceType by lazy { externalInterfaceClass.defaultType }
