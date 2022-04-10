@@ -36,4 +36,4 @@ internal actual object MonotonicTimeSource : TimeSource {
 @Suppress("ACTUAL_WITHOUT_EXPECT") // visibility
 internal actual typealias DefaultTimeMarkReading = Double
 
-private fun sumCheckNaN(value: Double): Double = value.also { if (it.isNaN()) throw IllegalArgumentException("Summing infinities of different sign") }
+private fun sumCheckNaN(value: Double): Double = value.also { if (it.isNaN()) throw IllegalArgumentException("Summing infinities of different signs") }

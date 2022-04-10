@@ -92,4 +92,4 @@ internal object DateNowTimeSource : DefaultTimeSource {
     override fun toString(): String = "TimeSource(Date.now())"
 }
 
-private fun sumCheckNaN(value: Double): Double = value.also { if (it.isNaN()) throw IllegalArgumentException("Summing infinities of different sign") }
+private fun sumCheckNaN(value: Double): Double = value.also { if (it.isNaN()) throw IllegalArgumentException("Summing infinities of different signs") }
