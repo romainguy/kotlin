@@ -54,6 +54,10 @@ public interface TimeMark {
      * Returns the amount of time passed from this mark measured with the time source from which this mark was taken.
      *
      * Note that the value returned by this function can change on subsequent invocations.
+     *
+     * @throws IllegalArgumentException an implementation may throw if calculating the elapsed time involves
+     * adding a positive infinite duration to an infinitely distant past time mark or
+     * a negative infinite duration to an infinitely distant future time mark.
      */
     public abstract fun elapsedNow(): Duration
 
@@ -65,7 +69,7 @@ public interface TimeMark {
      * If the time mark is adjusted too far in the past or in the future, it may saturate to an infinitely distant time mark.
      * In that case, [elapsedNow] will return an infinite duration elapsed from such infinitely distant mark.
      *
-     * @throws IllegalArgumentException may be thrown if a positive infinite duration is added to an infinitely distant past time mark or
+     * @throws IllegalArgumentException an implementation may throw if a positive infinite duration is added to an infinitely distant past time mark or
      * a negative infinite duration is added to an infinitely distant future time mark.
      */
     public open operator fun plus(duration: Duration): TimeMark = AdjustedTimeMark(this, duration)
@@ -78,7 +82,7 @@ public interface TimeMark {
      * If the time mark is adjusted too far in the past or in the future, it may saturate to an infinitely distant time mark.
      * In that case, [elapsedNow] will return an infinite duration elapsed from such infinitely distant mark.
      *
-     * @throws IllegalArgumentException may be thrown if a positive infinite duration is subtracted from an infinitely distant future time mark or
+     * @throws IllegalArgumentException an implementation may throw if a positive infinite duration is subtracted from an infinitely distant future time mark or
      * a negative infinite duration is subtracted from an infinitely distant past time mark.
      */
     public open operator fun minus(duration: Duration): TimeMark = plus(-duration)
