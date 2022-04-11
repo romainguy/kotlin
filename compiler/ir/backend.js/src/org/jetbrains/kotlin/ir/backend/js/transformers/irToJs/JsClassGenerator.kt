@@ -121,7 +121,7 @@ class JsClassGenerator(private val irClass: IrClass, val context: JsGenerationCo
             }
         }
 
-        if (irClass.isExternal) {
+        if (irClass.isExternal || context.isExternGeneration) {
             return classBlock.apply {
                 statements += irClass.declarations
                     .filterIsInstance<IrProperty>()

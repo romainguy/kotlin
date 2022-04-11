@@ -5,9 +5,7 @@
 
 package org.jetbrains.kotlin.ir.backend.js.export
 
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrFunction
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.serialization.js.ModuleKind
 
 sealed class ExportedDeclaration
@@ -37,7 +35,7 @@ data class ExportedFunction(
 
 data class ExportedConstructor(
     val parameters: List<ExportedParameter>,
-    val visibility: ExportedVisibility
+    val visibility: ExportedVisibility,
 ) : ExportedDeclaration() {
     val isProtected: Boolean
         get() = visibility == ExportedVisibility.PROTECTED
@@ -57,6 +55,7 @@ class ExportedProperty(
     val isAbstract: Boolean,
     val isProtected: Boolean,
     val isField: Boolean,
+    val ir: IrDeclaration?,
     val irGetter: IrFunction?,
     val irSetter: IrFunction?,
     val exportedObject: ExportedClass? = null,

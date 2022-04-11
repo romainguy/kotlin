@@ -113,6 +113,11 @@ fun JsStatement.withJsDocForConstructor(constructor: IrFunction?, parentClass: I
         }
     }
 
+fun JsStatement.withJsDocForNamespace() =
+    annotateWithoutContext {
+        const()
+    }
+
 fun JsStatement.withJsDocForEnumEntry() =
     annotateWithoutContext {
         export()

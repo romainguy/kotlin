@@ -98,7 +98,7 @@ class ExportModelGenerator(
                 constructor.valueParameters.filterNot { it.origin === ES6_RESULT_TYPE_PARAMETER || it.origin === ES6_INIT_BOX_PARAMETER }
         return ExportedConstructor(
             parameters = allValueParameters.map { exportParameter(it) },
-            visibility = constructor.visibility.toExportedVisibility()
+            visibility = constructor.visibility.toExportedVisibility(),
         )
     }
 
@@ -143,6 +143,7 @@ class ExportModelGenerator(
             isAbstract = parentClass?.isInterface == false && property.modality == Modality.ABSTRACT,
             isProtected = property.visibility == DescriptorVisibilities.PROTECTED,
             isField = parentClass?.isInterface == true,
+            ir = property,
             irGetter = property.getter,
             irSetter = property.setter
         )
@@ -166,6 +167,7 @@ class ExportModelGenerator(
                 isStatic = false,
                 isAbstract = false,
                 isProtected = false,
+                ir = null,
                 irGetter = null,
                 irSetter = null,
                 isField = false,
@@ -193,6 +195,7 @@ class ExportModelGenerator(
             isStatic = true,
             isAbstract = false,
             isProtected = parentClass.visibility == DescriptorVisibilities.PROTECTED,
+            ir = null,
             irGetter = context.mapping.enumEntryToGetInstanceFun[irEnumEntry]
                 ?: error("Unable to find get instance fun for ${field.fqNameWhenAvailable}"),
             irSetter = null,
@@ -264,7 +267,7 @@ class ExportModelGenerator(
 
         val privateConstructor = ExportedConstructor(
             parameters = emptyList(),
-            visibility = ExportedVisibility.PRIVATE
+            visibility = ExportedVisibility.PRIVATE,
         )
 
         return exportClass(
@@ -383,6 +386,7 @@ class ExportModelGenerator(
                 isStatic = !klass.isInner,
                 isAbstract = false,
                 isProtected = klass.visibility == DescriptorVisibilities.PROTECTED,
+                ir = klass,
                 irGetter = context.mapping.objectToGetInstanceFunction[klass]!!,
                 irSetter = null,
                 exportedObject = exportedClass,

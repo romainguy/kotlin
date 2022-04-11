@@ -85,7 +85,8 @@ class IrModuleToJsTransformerTmp(
             }
         }
 
-        val dts = wrapTypeScript(mainModuleName, moduleKind, exportData.values.flatMap { it.values.flatMap { it } }.toTypeScript(moduleKind))
+        val exportedDeclarations = exportData.values.flatMap { it.values.flatMap { it } }
+        val dts = wrapTypeScript(mainModuleName, moduleKind, exportedDeclarations.toTypeScript(moduleKind))
 
         modules.forEach { module ->
             module.files.forEach { StaticMembersLowering(backendContext).lower(it) }
@@ -121,7 +122,7 @@ class IrModuleToJsTransformerTmp(
                 backendContext.minimizedNameGenerator.clear()
             }
             result[it] = compilationOutput(it.perModule, it.minimizedMemberNames)
-                .run { if (it.perModule) this else optimize(backendContext) }
+                .optimize(backendContext, exportedDeclarations)
         }
 
         return CompilerResult(result, dts)

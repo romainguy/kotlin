@@ -218,6 +218,7 @@ fun List<ExportedDeclaration>.withMagicProperty(): List<ExportedDeclaration> {
             isAbstract = false,
             isProtected = false,
             isField = true,
+            ir = null,
             irGetter = null,
             irSetter = null,
         )
@@ -267,6 +268,7 @@ fun ExportedClass.toReadonlyProperty(): ExportedProperty {
         isAbstract = false,
         isProtected = false,
         isField = false,
+        ir = null,
         irGetter = null,
         irSetter = null
     )

@@ -27,6 +27,7 @@ class JsGenerationContext(
     val localNames: LocalNameGenerator? = null,
     private val nameCache: MutableMap<IrElement, JsName> = mutableMapOf(),
     private val useBareParameterNames: Boolean = false,
+    val isExternGeneration: Boolean = false
 ): IrNamer by staticContext {
     fun newFile(file: IrFile, func: IrFunction? = null, localNames: LocalNameGenerator? = null): JsGenerationContext {
         return JsGenerationContext(

@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.ir.SourceRangeInfo
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.backend.js.CompilationOutputs
 import org.jetbrains.kotlin.ir.backend.js.JsIrBackendContext
+import org.jetbrains.kotlin.ir.backend.js.export.ExportedDeclaration
 import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.IrDeclarationToJsTransformer
 import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.JsNameLinkingNamer
 import org.jetbrains.kotlin.ir.backend.js.utils.JsGenerationContext
@@ -28,6 +29,7 @@ import org.jetbrains.kotlin.ir.util.fileEntry
 import org.jetbrains.kotlin.js.backend.JsToStringGenerationVisitor
 import org.jetbrains.kotlin.js.backend.ast.JsGlobalBlock
 import org.jetbrains.kotlin.js.config.JSConfigurationKeys
+import org.jetbrains.kotlin.js.util.TextOutput
 import org.jetbrains.kotlin.js.util.TextOutputImpl
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.serialization.js.ModuleKind
@@ -37,11 +39,11 @@ private val supportedModuleKinds = setOf(
     ModuleKind.ES,
 )
 
-fun CompilationOutputs.optimize(context: JsIrBackendContext): CompilationOutputs {
+fun CompilationOutputs.optimize(context: JsIrBackendContext,exportedDeclarations: List<ExportedDeclaration>): CompilationOutputs {
     if (!context.isSupportedModuleKind()) return this
 
     return CompilationOutputs(
-        ClosureCompilerOptimizer(jsCode, context).optimize(), jsProgram, sourceMap, dependencies
+        ClosureCompilerOptimizer(jsCode, context, exportedDeclarations).optimize(), jsProgram, sourceMap, dependencies
     )
 }
 
@@ -49,10 +51,13 @@ private fun JsIrBackendContext.isSupportedModuleKind(): Boolean {
     return configuration[JSConfigurationKeys.MODULE_KIND]!! in supportedModuleKinds
 }
 
-private class ClosureCompilerOptimizer(output: String, context: JsIrBackendContext) {
-    private val declarationTransformer = IrDeclarationToJsTransformer()
+private class ClosureCompilerOptimizer(
+    output: String,
+    context: JsIrBackendContext,
+    exportedDeclarations: List<ExportedDeclaration>
+) {
     private val input = output.asSourceCode()
-    private val extern = context.generateExternsFromExternals()
+    private val extern = context.generateExternsFromExternals(exportedDeclarations)
     private val closureCompiler = Compiler()
     private val closureCompilerOptions = getCompilerOptions()
 
@@ -69,33 +74,52 @@ private class ClosureCompilerOptimizer(output: String, context: JsIrBackendConte
         return SourceFile.fromCode("input.js", this)
     }
 
-    private fun JsIrBackendContext.generateExternsFromExternals(): List<SourceFile> {
+    private fun JsIrBackendContext.generateExternsFromExternals(
+        exportedDeclarations: List<ExportedDeclaration>
+    ): List<SourceFile> {
         val builtins = AbstractCommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.CUSTOM)
-        val userLandExterns = generateUserLandExterns()
+        val userLandExterns = generateUserLandExterns(exportedDeclarations)
         return builtins + userLandExterns
     }
 
-    private fun JsIrBackendContext.generateUserLandExterns(): SourceFile {
+    private fun JsIrBackendContext.generateUserLandExterns(exportedDeclarations: List<ExportedDeclaration>): SourceFile {
         val nameGenerator = JsNameLinkingNamer(this, false)
-
+        val declarationTransformer = IrDeclarationToJsTransformer()
         val globalNameScope = NameTable<IrDeclaration>()
-
         val staticContext = JsStaticContext(
-            backendContext = this, irNamer = nameGenerator, globalNameScope = globalNameScope
+            backendContext = this,
+            irNamer = nameGenerator,
+            globalNameScope = globalNameScope
         )
 
         val generationContext = JsGenerationContext(
             currentFile = IrFileImpl(
                 DummyFile, IrFileSymbolImpl(null), FqName(DummyFile.name)
-            ), currentFunction = null, staticContext = staticContext, useBareParameterNames = false
+            ),
+            currentFunction = null,
+            staticContext = staticContext,
+            useBareParameterNames = false,
+            isExternGeneration = true
         )
-        val externs = JsGlobalBlock().apply {
-            statements += externalPackageFragment.asSequence()
-                .flatMap { it.value.declarations }
-                .map { it.accept(declarationTransformer, generationContext) }.toList()
+
+        val externalExterns = ExternalsToExternTransformer(declarationTransformer).generateExterns(generationContext)
+
+        val crossModuleExterns = ExportModelToCrossModuleExternTransformer(
+            exportedDeclarations,
+            declarationTransformer
+        ).generateCrossModuleExterns(generationContext)
+
+        val output = createExternOutput().apply {
+            val stringGenerationVisitor = JsToStringGenerationVisitor(this)
+            externalExterns.accept(stringGenerationVisitor)
+            crossModuleExterns.accept(stringGenerationVisitor)
         }
 
-        val output = TextOutputImpl().apply {
+        return SourceFile.fromCode(DummyFile.name, output.toString())
+    }
+
+    private fun createExternOutput(): TextOutput {
+        return TextOutputImpl().apply {
             print(
                 """
                 /**
@@ -105,9 +129,7 @@ private class ClosureCompilerOptimizer(output: String, context: JsIrBackendConte
             """.trimIndent()
             )
             print('\n')
-            externs.accept(JsToStringGenerationVisitor(this))
         }
-        return SourceFile.fromCode(DummyFile.name, output.toString())
     }
 
     private fun getCompilerOptions(): CompilerOptions {

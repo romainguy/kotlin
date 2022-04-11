@@ -76,7 +76,7 @@ fun translateFunction(declaration: IrFunction, name: JsName?, context: JsGenerat
 
     val functionParams = declaration.valueParameters.map { functionContext.getNameForValueDeclaration(it) }
     val body = declaration.body
-        ?.takeIf { !declaration.isExternal || declaration.origin != IrDeclarationOrigin.DEFINED }
+        ?.takeIf { !context.isExternGeneration && (!declaration.isExternal || declaration.origin != IrDeclarationOrigin.DEFINED) }
         ?.accept(IrElementToJsStatementTransformer(), functionContext) as? JsBlock ?: JsBlock()
 
     val function = JsFunction(emptyScope, body, "member function ${name ?: "annon"}")
