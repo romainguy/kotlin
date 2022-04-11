@@ -12,10 +12,33 @@ fun CompilerPhase<*, *, *>.toPhaseMap(): MutableMap<String, AnyNamedPhase> =
         acc
     }
 
+class PhaseConfigBuilder(private val compoundPhase: CompilerPhase<*, *, *>) {
+    val enabled: MutableSet<AnyNamedPhase> = mutableSetOf()
+    val verbose: MutableSet<AnyNamedPhase> = mutableSetOf()
+    val toDumpStateBefore: MutableSet<AnyNamedPhase> = mutableSetOf()
+    val toDumpStateAfter: MutableSet<AnyNamedPhase> = mutableSetOf()
+    var dumpToDirectory: String? = null
+    var dumpOnlyFqName: String? = null
+    val toValidateStateBefore: MutableSet<AnyNamedPhase> = mutableSetOf()
+    val toValidateStateAfter: MutableSet<AnyNamedPhase> = mutableSetOf()
+    val namesOfElementsExcludedFromDumping: MutableSet<String> = mutableSetOf()
+    var needProfiling: Boolean = false
+    var checkConditions: Boolean = false
+    var checkStickyConditions: Boolean = false
+
+    fun build() = PhaseConfig(
+        compoundPhase, compoundPhase.toPhaseMap(), enabled,
+        verbose, toDumpStateBefore, toDumpStateAfter, dumpToDirectory, dumpOnlyFqName,
+        toValidateStateBefore, toValidateStateAfter,
+        namesOfElementsExcludedFromDumping,
+        needProfiling, checkConditions, checkStickyConditions
+    )
+}
+
 class PhaseConfig(
     private val compoundPhase: CompilerPhase<*, *, *>,
-    private val phases: MutableMap<String, AnyNamedPhase> = compoundPhase.toPhaseMap(),
-    enabled: MutableSet<AnyNamedPhase> = phases.values.toMutableSet(),
+    private val phases: Map<String, AnyNamedPhase> = compoundPhase.toPhaseMap(),
+    private val initiallyEnabled: Set<AnyNamedPhase> = phases.values.toSet(),
     val verbose: Set<AnyNamedPhase> = emptySet(),
     val toDumpStateBefore: Set<AnyNamedPhase> = emptySet(),
     val toDumpStateAfter: Set<AnyNamedPhase> = emptySet(),
@@ -28,7 +51,22 @@ class PhaseConfig(
     val checkConditions: Boolean = false,
     val checkStickyConditions: Boolean = false
 ) {
-    private val enabledMut = enabled
+    fun toBuilder() = PhaseConfigBuilder(compoundPhase).also {
+        it.enabled.addAll(initiallyEnabled)
+        it.verbose.addAll(verbose)
+        it.toDumpStateBefore.addAll(toDumpStateBefore)
+        it.toDumpStateAfter.addAll(toDumpStateAfter)
+        it.dumpToDirectory = dumpToDirectory
+        it.dumpOnlyFqName = dumpOnlyFqName
+        it.toValidateStateBefore.addAll(toValidateStateBefore)
+        it.toValidateStateAfter.addAll(toValidateStateAfter)
+        it.namesOfElementsExcludedFromDumping.addAll(namesOfElementsExcludedFromDumping)
+        it.needProfiling = needProfiling
+        it.checkConditions = checkConditions
+        it.checkStickyConditions = checkStickyConditions
+    }
+
+    private val enabledMut = initiallyEnabled.toMutableSet()
 
     val enabled: Set<AnyNamedPhase> get() = enabledMut
 
