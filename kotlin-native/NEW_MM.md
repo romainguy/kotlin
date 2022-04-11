@@ -1,9 +1,9 @@
-# New memory model migration guide
+# New memory manager migration guide
 
-> The new memory model is Experimental. It's not production-ready and may be changed at any time.
+> The new memory manager is Alpha. It's not production-ready and may be changed at any time.
 > Opt-in is required (see the details below), and you should use it only for evaluation purposes. We would appreciate your feedback on it in [YouTrack](https://youtrack.jetbrains.com/issue/KT-48525).
 
-In the new memory model (MM), we're lifting restrictions on object sharing: there's no need to freeze objects to share them
+In the new memory manager (MM), we're lifting restrictions on object sharing: there's no need to freeze objects to share them
 between threads anymore.
 
 In particular:
@@ -60,7 +60,7 @@ If `kotlin.native.isExperimentalMM()` returns `true`, you've successfully enable
 ### Update the libraries
 
 To take full advantage of the new MM, we released new versions of the following libraries:
-* `kotlinx.coroutines`: `1.6.0` or newer (will automatically detect when running with the new memory model).
+* `kotlinx.coroutines`: `1.6.0` or newer (will automatically detect when running with the new memory manager).
     * No freezing. Every common primitive (Channels, Flows, coroutines) works through `Worker` boundaries.
     * Unlike the `native-mt` version, library objects are transparent for `freeze`. For example, if you freeze a channel, all of its internals will get frozen, so it won't work as expected. In particular, this can happen when freezing something that captures a channel.
     * `Dispatchers.Default` is backed by a pool of `Worker`s on Linux and Windows and by a global queue on Apple targets.
