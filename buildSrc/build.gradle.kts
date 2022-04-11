@@ -25,6 +25,15 @@ buildscript {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${project.bootstrapKotlinVersion}")
         classpath("org.jetbrains.kotlin:kotlin-sam-with-receiver:${project.bootstrapKotlinVersion}")
     }
+
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.google.code.gson" && requested.name == "gson") {
+                useVersion("2.8.9")
+                because("Force using same gson version because of https://github.com/google/gson/pull/1991")
+            }
+        }
+    }
 }
 
 logger.info("buildSrcKotlinVersion: " + extra["bootstrapKotlinVersion"])
@@ -220,6 +229,15 @@ allprojects {
 
     afterEvaluate {
         apply(from = "$rootDir/../gradle/cacheRedirector.gradle.kts")
+    }
+
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.google.code.gson" && requested.name == "gson") {
+                useVersion("2.8.9")
+                because("Force using same gson version because of https://github.com/google/gson/pull/1991")
+            }
+        }
     }
 }
 

@@ -33,6 +33,15 @@ buildscript {
         classpath(kotlin("gradle-plugin", bootstrapKotlinVersion))
         classpath(kotlin("serialization", bootstrapKotlinVersion))
     }
+
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.google.code.gson" && requested.name == "gson") {
+                useVersion("2.8.9")
+                because("Force using same gson version because of https://github.com/google/gson/pull/1991")
+            }
+        }
+    }
 }
 
 plugins {
@@ -618,6 +627,15 @@ allprojects {
         }
 
         apply(from = "$rootDir/gradle/testRetry.gradle.kts")
+    }
+
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.google.code.gson" && requested.name == "gson") {
+                useVersion(project.commonDependencyVersion("com.google.code.gson", "gson"))
+                because("Force using same gson version because of https://github.com/google/gson/pull/1991")
+            }
+        }
     }
 }
 
