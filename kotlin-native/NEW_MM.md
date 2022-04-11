@@ -33,7 +33,7 @@ The new MM also brings another set of changes:
 
 ### Update the Kotlin/Native compiler
 
-Update to Kotlin 1.6.0-M1 or newer.
+Update to Kotlin 1.6.20 or newer.
 
 ### Switch to the new MM
 
@@ -60,7 +60,7 @@ If `kotlin.native.isExperimentalMM()` returns `true`, you've successfully enable
 ### Update the libraries
 
 To take full advantage of the new MM, we released new versions of the following libraries:
-* `kotlinx.coroutines`: `1.6.0` (will automatically detect when running with the new memory model).
+* `kotlinx.coroutines`: `1.6.0` or newer (will automatically detect when running with the new memory model).
     * No freezing. Every common primitive (Channels, Flows, coroutines) works through `Worker` boundaries.
     * Unlike the `native-mt` version, library objects are transparent for `freeze`. For example, if you freeze a channel, all of its internals will get frozen, so it won't work as expected. In particular, this can happen when freezing something that captures a channel.
     * `Dispatchers.Default` is backed by a pool of `Worker`s on Linux and Windows and by a global queue on Apple targets.
@@ -68,7 +68,7 @@ To take full advantage of the new MM, we released new versions of the following 
     * `newFixedThreadPoolContext` to create a coroutine dispatcher backed by a pool of `N` `Worker`s.
     * `Dispatchers.Main` is backed by the main queue on Darwin and by a standalone `Worker` on other platforms.
       _In unit tests, nothing processes the main thread queue, so do not use `Dispatchers.Main` in unit tests unless it was mocked, which can be done by calling `Dispatchers.setMain` from `kotlinx-coroutines-test`._
-* `ktor`: `1.6.2-native-mm-eap-196` at https://maven.pkg.jetbrains.space/public/p/ktor/eap
+* `ktor`: `2.0.0` or newer.
 
 ### Using previous versions of the libraries
 
